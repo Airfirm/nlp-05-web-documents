@@ -1,6 +1,5 @@
 """
 src/nlp/stage03_transform_femi.py
-(EDIT YOUR COPY OF THIS FILE)
 
 Source: validated BeautifulSoup object
 Sink: Pandas DataFrame
@@ -68,18 +67,7 @@ This stage requires careful inspection of the HTML structure and thoughtful hand
 
 Use all your resources, creativity, and problem-solving skills to navigate the complexities of web data extraction and transformation.
 
-Notes
 
-Following our process, do NOT edit this _case file directly,
-keep it as a working example.
-
-In your custom project, copy this _case.py file and
-append with _yourname.py instead.
-
-Then edit your copied Python file to:
-- extract the fields needed for your analysis,
-- normalize records into a consistent structure,
-- create any derived fields required.
 """
 
 # ============================================================
