@@ -75,6 +75,7 @@ Use all your resources, creativity, and problem-solving skills to navigate the c
 # ============================================================
 
 import logging
+import re
 
 from bs4 import BeautifulSoup, Tag
 import pandas as pd
@@ -101,191 +102,207 @@ def run_transform(
     LOG.info("STAGE 03: TRANSFORM starting...")
     LOG.info("========================")
 
-    LOG.info("Extracting metadata from HTML")
     LOG.info(
-        "We must manually inspect the HTML structure to identify the fields we want to extract."
+        "Source sink: validated BeautifulSoup object -> analysis-ready Pandas DataFrame"
     )
-    LOG.info(
-        "For this arXiv page, we can extract:"
-        "\n- Title from <h1 class='title'>"
-        "\n- Authors from <div class='authors'>"
-        "\n- Abstract from <blockquote class='abstract'>"
-        "\n- Primary subject from <div class='subheader'>"
-        "\n- Submission date from <div class='dateline'>"
-        "\n- ArXiv ID from canonical link"
-    )
-    LOG.info("Replace any missing content with `unknown` to ensure all are strings.")
+    LOG.info("Beginning field extraction from inspected arXiv HTML structure")
 
+    # ========================================================
+    # STAGE 03a: Locate key HTML elements
+    # ========================================================
     LOG.info("========================")
-    LOG.info("STAGE 03a: Extract bibliographic fields (title, authors, abstract)")
+    LOG.info("STAGE 03a: Locate HTML elements")
     LOG.info("========================")
 
-    # By reading the web page source, we see title tag is located in <h1>
     title_tag: Tag | None = soup.find("h1", class_="title")
 
-    # Authors tag from <div class="authors">
     authors_tag: Tag | None = soup.find("div", class_="authors")
 
-    # Abstract tag from <blockquote class="abstract">
     abstract_tag: Tag | None = soup.find("blockquote", class_="abstract")
+    subheader_tag: Tag | None = soup.find("div", class_="subheader")
+    dateline_tag: Tag | None = soup.find("div", class_="dateline")
+    canonical_tag: Tag | None = soup.find("link", rel="canonical")
+    pdf_tag: Tag | None = soup.find("a", class_="abs-button download-pdf")
+    primary_subject_tag: Tag | None = soup.find("span", class_="primary-subject")
 
-    # Extract title text from the tag, or use "unknown" if tag not found.
-    # The arXiv page includes "Title:" as a descriptor inside the tag: strip it.
-    # .get_text(strip=True) removes extra whitespace and newlines.
-    # .replace("Title:", "") removes the descriptor prefix.
-    # .strip() removes any remaining leading/trailing whitespace.
+    LOG.info(f"title_tag found: {title_tag is not None}")
+    LOG.info(f"authors_tag found: {authors_tag is not None}")
+    LOG.info(f"abstract_tag found: {abstract_tag is not None}")
+    LOG.info(f"subheader_tag found: {subheader_tag is not None}")
+    LOG.info(f"dateline_tag found: {dateline_tag is not None}")
+    LOG.info(f"canonical_tag found: {canonical_tag is not None}")
+    LOG.info(f"pdf_tag found: {pdf_tag is not None}")
+    LOG.info(f"primary_subject_tag found: {primary_subject_tag is not None}")
+
+    # ========================================================
+    # STAGE 03b: Extract and clean bibliographic fields
+    # ========================================================
+    LOG.info("========================")
+    LOG.info("STAGE 03b: Extract and clean bibliographic fields")
+    LOG.info("========================")
+
+    # Title cleaning:
+    # arXiv stores the visible descriptor "Title:" inside the same <h1> tag
+    # as the actual title, so we must remove that prefix after extraction.
+    raw_title: str = title_tag.get_text(" ", strip=True) if title_tag else "unknown"
     title: str = (
-        title_tag.get_text(strip=True).replace("Title:", "").strip()
-        if title_tag
+        raw_title.replace("Title:", "", 1).strip()
+        if raw_title != "unknown"
         else "unknown"
     )
 
-    # The authors <div> contains one <a> tag per author, like this:
-    #   <div class="authors">
-    #     <a href="...">Natalie Shapira</a>,
-    #     <a href="...">Chris Wendler</a>,
-    #     ...
-    #   </div>
-    #
-    # If we use .get_text() on the whole <div>, we get the commas too,
-    # which causes double-comma problems in our output.
-    #
-    # Instead, we find all <a> tags inside the authors <div>.
-    # .find_all("a") returns a list of Tag objects, one per author.
-    # If the authors_tag is None (not found), we use an empty list.
+    # Authors extraction:
+    # Use only <a> tags to avoid punctuation/text node issues in the container.
     author_tags_list: list[Tag] = authors_tag.find_all("a") if authors_tag else []
+    author_names_list: list[str] = [
+        tag.get_text(strip=True) for tag in author_tags_list
+    ]
+    authors: str = ", ".join(author_names_list) if author_names_list else "unknown"
 
-    # Now we extract the text from each author Tag in the list.
-    # We use a list comprehension as a concise way to transform one list into another.
-    # It loops over each tag in the list and calls .get_text().
-    # This gives us a plain list of author name strings:
-    #   ["Natalie Shapira", "Chris Wendler", "Avery Yen", ...]
-    #
-    # ", ".join(...) then joins that list into a single "comma space"-separated string:
-    #   "Natalie Shapira, Chris Wendler, Avery Yen, ..."
-    #
-    # If author_tags_list is empty (no authors found), use "unknown".
-    authors: str = (
-        ", ".join([tag.get_text(strip=True) for tag in author_tags_list])
-        .replace("Authors:", "")
-        .strip()
-        if authors_tag
-        else "unknown"
+    # New derived field: first author only
+    first_author: str = author_names_list[0] if author_names_list else "unknown"
+
+    # Abstract cleaning:
+    # arXiv includes "Abstract:" inside the blockquote, so remove it.
+    raw_abstract: str = (
+        abstract_tag.get_text(" ", strip=True) if abstract_tag else "unknown"
     )
-
-    # Extract abstract text, or "unknown" if tag not found.
-    # .replace("Abstract:", "") removes the descriptor prefix.
     abstract: str = (
-        abstract_tag.get_text(strip=True).replace("Abstract:", "").strip()
-        if abstract_tag
+        raw_abstract.replace("Abstract:", "", 1).strip()
+        if raw_abstract != "unknown"
         else "unknown"
     )
 
-    # Log the extracted values for debugging
-    # Log only the first 100 characters of the abstract
-    LOG.info(f"Extracted title: {title}")
-    LOG.info(f"Extracted authors: {authors}")
-    LOG.info(f"Extracted abstract: {abstract[:100]}...")
+    LOG.info(f"Extracted cleaned title: {title}")
+    LOG.info(f"Extracted authors count from tags: {len(author_names_list)}")
+    LOG.info(f"Extracted first author: {first_author}")
+    LOG.info(f"Extracted abstract preview: {abstract[:120]}...")
 
+    # ========================================================
+    # STAGE 03c: Extract subject and category metadata
+    # ========================================================
     LOG.info("========================")
-    LOG.info("STAGE 03b: Extract metadata field subjects from subheader")
-    LOG.info("========================")
-
-    # Primary subject from <div class="subheader">
-    subheader: Tag | None = soup.find("div", class_="subheader")
-
-    # Subjects may be in the format "Subjects: cs.AI (primary); cs.LG; stat.ML"
-    # We can extract the primary subject and also keep the full list if needed.
-    subjects: str = subheader.get_text(strip=True) if subheader else "unknown"
-    LOG.info(f"Extracted subjects: {subjects}")
-
-    LOG.info("========================")
-    LOG.info("STAGE 03c: Extract metadata field date from dateline")
+    LOG.info("STAGE 03c: Extract subject and category metadata")
     LOG.info("========================")
 
-    # Submission date from <div class="dateline">
-    dateline: Tag | None = soup.find("div", class_="dateline")
-    date_submitted_str: str = dateline.get_text(strip=True) if dateline else "unknown"
-    LOG.info(f"Extracted submitted: {date_submitted_str}")
-
-    LOG.info("========================")
-    LOG.info("STAGE 03d: Extract metadata field arxiv_id from canonical link")
-    LOG.info("========================")
-
-    # The canonical link looks like this in the HTML <head>:
-    #   <link rel="canonical" href="https://arxiv.org/abs/2602.20021"/>
-    #
-    # canonical["href"] accesses the HTML `href` attribute value.
-    # BeautifulSoup returns it as an AttributeValueList, not a plain string.
-    # Cast it to str() first to use string methods like .split().
-    #
-    # .split("/abs/") splits the URL on the text "/abs/" in the URL, returning a list:
-    #   ["https://arxiv.org", "2602.20021"]
-    #
-    # Lists in Python are zero-indexed, so
-    # [0] gets the first element of the list,
-    # [1] gets the second element of the list,
-    # [-1] gets the last element of the list.
-    #
-    # To get the arXiv ID, we can use either:
-    #   [1] to get the second element, or
-    #   [-1] to get the last element
-    #
-    # Example:
-    #   "https://arxiv.org/abs/2602.20021".split("/abs/")
-    #   returns a list with two items: ["https://arxiv.org", "2602.20021"]
-    #   the last (or second) item is the arxiv id: "2602.20021"
-    canonical: Tag | None = soup.find("link", rel="canonical")
-
-    if canonical is None:
-        LOG.warning("Canonical link not found, setting arXiv ID to 'unknown'")
-        arxiv_id: str = "unknown"
-    else:
-        href: str = str(canonical["href"])
-        arxiv_id: str = href.split("/abs/")[-1]
-    LOG.info(f"Extracted arxiv_id: {arxiv_id}")
-
-    LOG.info("========================")
-    LOG.info("STAGE 03e: Calculate derived fields")
-    LOG.info("========================")
-
-    # Calculate derived field: abstract word count
-    abstract_word_count: int = len(abstract.split()) if abstract != "unknown" else 0
-    LOG.info(f"Calculated abstract word count: {abstract_word_count}")
-
-    # Calculate derived field: author count
-    author_count: int = (
-        len([a.strip() for a in authors.split(",")]) if authors != "unknown" else 0
+    subjects: str = (
+        subheader_tag.get_text(" ", strip=True) if subheader_tag else "unknown"
     )
-    LOG.info(f"Calculated author count: {author_count}")
+    primary_subject: str = (
+        primary_subject_tag.get_text(" ", strip=True)
+        if primary_subject_tag
+        else "unknown"
+    )
 
+    # Example primary subject text:
+    # "Databases (cs.DB)"
+    # Extract the category code inside parentheses if available.
+    category_match = re.search(r"\(([^)]+)\)", primary_subject)
+    primary_category_code: str = (
+        category_match.group(1) if category_match else "unknown"
+    )
+
+    LOG.info(f"Extracted subjects heading: {subjects}")
+    LOG.info(f"Extracted primary subject: {primary_subject}")
+    LOG.info(f"Extracted primary category code: {primary_category_code}")
+
+    # ========================================================
+    # STAGE 03d: Extract date, canonical arXiv id, and PDF link
+    # ========================================================
     LOG.info("========================")
-    LOG.info("STAGE 03f: Build record and create DataFrame")
+    LOG.info("STAGE 03d: Extract date, arXiv ID, and PDF link")
+    LOG.info("========================")
+
+    raw_submitted: str = (
+        dateline_tag.get_text(" ", strip=True) if dateline_tag else "unknown"
+    )
+
+    # Dateline cleaning:
+    # The visible text includes square brackets, e.g. "[Submitted on 2 Apr 2026]".
+    # Remove brackets and the fixed phrase for a cleaner field.
+    submitted: str = raw_submitted
+    if submitted != "unknown":
+        submitted = submitted.replace("[", "").replace("]", "")
+        submitted = submitted.replace("Submitted on", "", 1).strip()
+
+    if canonical_tag is None:
+        LOG.warning("Canonical link not found; setting arxiv_id to 'unknown'")
+        arxiv_id = "unknown"
+    else:
+        href = str(canonical_tag.get("href", ""))
+        arxiv_id = href.split("/abs/")[-1] if "/abs/" in href else "unknown"
+
+    # New extracted field: PDF link
+    if pdf_tag is None:
+        LOG.warning("PDF link not found; setting pdf_url to 'unknown'")
+        pdf_url = "unknown"
+    else:
+        pdf_href = str(pdf_tag.get("href", "")).strip()
+        pdf_url = (
+            f"https://arxiv.org{pdf_href}"
+            if pdf_href.startswith("/")
+            else pdf_href
+            if pdf_href
+            else "unknown"
+        )
+
+    LOG.info(f"Extracted submitted date: {submitted}")
+    LOG.info(f"Extracted arXiv ID: {arxiv_id}")
+    LOG.info(f"Extracted PDF URL: {pdf_url}")
+
+    # ========================================================
+    # STAGE 03e: Calculate derived analytical fields
+    # ========================================================
+    LOG.info("========================")
+    LOG.info("STAGE 03e: Calculate derived analytical fields")
+    LOG.info("========================")
+
+    abstract_word_count: int = len(abstract.split()) if abstract != "unknown" else 0
+    abstract_sentence_count: int = (
+        len([s for s in re.split(r"[.!?]+", abstract) if s.strip()])
+        if abstract != "unknown"
+        else 0
+    )
+    author_count: int = len(author_names_list)
+    title_char_count: int = len(title) if title != "unknown" else 0
+
+    LOG.info(f"Calculated author_count: {author_count}")
+    LOG.info(f"Calculated abstract_word_count: {abstract_word_count}")
+    LOG.info(f"Calculated abstract_sentence_count: {abstract_sentence_count}")
+    LOG.info(f"Calculated title_char_count: {title_char_count}")
+
+    # ========================================================
+    # STAGE 03f: Build final record and DataFrame
+    # ========================================================
+    LOG.info("========================")
+    LOG.info("STAGE 03f: Build record and DataFrame")
     LOG.info("========================")
 
     record = {
         "arxiv_id": arxiv_id,
         "title": title,
         "authors": authors,
+        "first_author": first_author,
+        "author_count": author_count,
         "subjects": subjects,
-        "submitted": date_submitted_str,
+        "primary_subject": primary_subject,
+        "primary_category_code": primary_category_code,
+        "submitted": submitted,
         "abstract": abstract,
         "abstract_word_count": abstract_word_count,
-        "author_count": author_count,
+        "abstract_sentence_count": abstract_sentence_count,
+        "title_char_count": title_char_count,
+        "pdf_url": pdf_url,
     }
 
     df = pd.DataFrame([record])
-    LOG.info(f"Created DataFrame with {len(df)} row and {len(df.columns)} columns")
-    LOG.info(f"Columns: {list(df.columns)}")
 
-    LOG.info("DataFrame Details")
-    LOG.info(f"  Title: {title}")
-    LOG.info(f"  Author count: {record['author_count']}")
-    LOG.info(f"  Abstract word count: {record['abstract_word_count']}")
-    LOG.info(f"  DataFrame preview:\n{df.head()}")
+    LOG.info(f"Created DataFrame with {len(df)} row and {len(df.columns)} columns")
+    LOG.info(f"Output columns: {list(df.columns)}")
+    LOG.info("Preview of transformed record:")
+    LOG.info(f"\n{df.head().to_string(index=False)}")
 
     LOG.info("Sink: Pandas DataFrame created")
     LOG.info("Transformation complete.")
 
-    # Return the transformed DataFrame for use in the Load stage.
     return df

@@ -180,3 +180,95 @@
 2026-04-04 10:27:13 | INFO | CI | ========================
 2026-04-04 10:27:13 | INFO | CI | Pipeline executed successfully!
 2026-04-04 10:27:13 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | === RUN START ===
+2026-04-04 18:38:42 | INFO | CI | project=Module 5: EVTL PIPELINE - WEB DOCUMENTS (HTML)
+2026-04-04 18:38:42 | INFO | CI | repo_dir=nlp-05-web-documents
+2026-04-04 18:38:42 | INFO | CI | python=3.14.2
+2026-04-04 18:38:42 | INFO | CI | os=Windows 11
+2026-04-04 18:38:42 | INFO | CI | shell=powershell
+2026-04-04 18:38:42 | INFO | CI | cwd=.
+2026-04-04 18:38:42 | INFO | CI | github_actions=False
+2026-04-04 18:38:42 | INFO | CI | START PIPELINE
+2026-04-04 18:38:42 | INFO | CI | ROOT_PATH = .
+2026-04-04 18:38:42 | INFO | CI | DATA_PATH = data
+2026-04-04 18:38:42 | INFO | CI | RAW_PATH = data\raw
+2026-04-04 18:38:42 | INFO | CI | PROCESSED_PATH = data\processed
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | STAGE 01: EXTRACT starting... 
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | EXTRACT: Fetching HTML from https://arxiv.org/abs/2604.01967
+2026-04-04 18:38:42 | INFO | CI | SOURCE URL = https://arxiv.org/abs/2604.01967
+2026-04-04 18:38:42 | INFO | CI | SINK PATH = data\raw\femi_raw.html
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | STAGE 02: VALIDATE starting...
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | HTML STRUCTURE INSPECTION:
+2026-04-04 18:38:42 | INFO | CI | Top-level type: BeautifulSoup
+2026-04-04 18:38:42 | INFO | CI | Top-level elements: ['html']
+2026-04-04 18:38:42 | INFO | CI | VALIDATE: Title found: True
+2026-04-04 18:38:42 | INFO | CI | VALIDATE: Authors found: True
+2026-04-04 18:38:42 | INFO | CI | VALIDATE: Abstract found: True
+2026-04-04 18:38:42 | INFO | CI | VALIDATE: Subjects found: True
+2026-04-04 18:38:42 | INFO | CI | VALIDATE: Dateline found: True
+2026-04-04 18:38:42 | INFO | CI | VALIDATE: HTML structure is valid.
+2026-04-04 18:38:42 | INFO | CI | Sink: validated BeautifulSoup object
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | STAGE 03: TRANSFORM starting...
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | Source sink: validated BeautifulSoup object -> analysis-ready Pandas DataFrame
+2026-04-04 18:38:42 | INFO | CI | Beginning field extraction from inspected arXiv HTML structure
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | STAGE 03a: Locate HTML elements
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | title_tag found: True
+2026-04-04 18:38:42 | INFO | CI | authors_tag found: True
+2026-04-04 18:38:42 | INFO | CI | abstract_tag found: True
+2026-04-04 18:38:42 | INFO | CI | subheader_tag found: True
+2026-04-04 18:38:42 | INFO | CI | dateline_tag found: True
+2026-04-04 18:38:42 | INFO | CI | canonical_tag found: True
+2026-04-04 18:38:42 | INFO | CI | pdf_tag found: True
+2026-04-04 18:38:42 | INFO | CI | primary_subject_tag found: True
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | STAGE 03b: Extract and clean bibliographic fields
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | Extracted cleaned title: Optimizing Relational Queries over Array-Valued Data in Columnar Systems
+2026-04-04 18:38:42 | INFO | CI | Extracted authors count from tags: 6
+2026-04-04 18:38:42 | INFO | CI | Extracted first author: Maroua Zeblah
+2026-04-04 18:38:42 | INFO | CI | Extracted abstract preview: Modern analytical workloads increasingly combine relational data with array-valued attributes. While columnar database s...
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | STAGE 03c: Extract subject and category metadata
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | Extracted subjects heading: Computer Science > Databases
+2026-04-04 18:38:42 | INFO | CI | Extracted primary subject: Databases (cs.DB)
+2026-04-04 18:38:42 | INFO | CI | Extracted primary category code: cs.DB
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | STAGE 03d: Extract date, arXiv ID, and PDF link
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | Extracted submitted date: 2 Apr 2026
+2026-04-04 18:38:42 | INFO | CI | Extracted arXiv ID: 2604.01967
+2026-04-04 18:38:42 | INFO | CI | Extracted PDF URL: https://arxiv.org/pdf/2604.01967
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | STAGE 03e: Calculate derived analytical fields
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | Calculated author_count: 6
+2026-04-04 18:38:42 | INFO | CI | Calculated abstract_word_count: 132
+2026-04-04 18:38:42 | INFO | CI | Calculated abstract_sentence_count: 6
+2026-04-04 18:38:42 | INFO | CI | Calculated title_char_count: 72
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | STAGE 03f: Build record and DataFrame
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | Created DataFrame with 1 row and 14 columns
+2026-04-04 18:38:42 | INFO | CI | Output columns: ['arxiv_id', 'title', 'authors', 'first_author', 'author_count', 'subjects', 'primary_subject', 'primary_category_code', 'submitted', 'abstract', 'abstract_word_count', 'abstract_sentence_count', 'title_char_count', 'pdf_url']
+2026-04-04 18:38:42 | INFO | CI | Preview of transformed record:
+2026-04-04 18:38:42 | INFO | CI | 
+  arxiv_id                                                                    title                                                                                    authors  first_author  author_count                     subjects   primary_subject primary_category_code  submitted                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      abstract  abstract_word_count  abstract_sentence_count  title_char_count                          pdf_url
+2604.01967 Optimizing Relational Queries over Array-Valued Data in Columnar Systems Maroua Zeblah, Etienne Couritas, Sarah Chlyah, Pierre Genevès, Nils Gesbert, Nabil Layaïda Maroua Zeblah             6 Computer Science > Databases Databases (cs.DB)                 cs.DB 2 Apr 2026 Modern analytical workloads increasingly combine relational data with array-valued attributes. While columnar database systems efficiently process such workloads, their ability to optimize queries that interleave relational operators with array manipulations remains limited. This paper introduces A3D-RA, an extended relational algebra supporting array-valued attributes, together with a comprehensive framework for algebraic reasoning and optimization. We formalize its data model and semantics, develop a complete set of equivalence-preserving transformation rules capturing pairwise interactions between relational and array operators, and propose a plan enumeration strategy with an optimality guarantee that remains polynomial in all non-join operators. We design A3D-RA as a modular, backend-independent optimization layer that can be instantiated over existing analytical database systems. Experimental results across three high-performance engines on a real-world workload show consistent performance gains enabled by the proposed algebraic optimization layer.                  132                        6                72 https://arxiv.org/pdf/2604.01967
+2026-04-04 18:38:42 | INFO | CI | Sink: Pandas DataFrame created
+2026-04-04 18:38:42 | INFO | CI | Transformation complete.
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | STAGE 04: LOAD starting...
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | SINK PATH = data\processed\femi_processed.csv
+2026-04-04 18:38:42 | INFO | CI | ========================
+2026-04-04 18:38:42 | INFO | CI | Pipeline executed successfully!
+2026-04-04 18:38:42 | INFO | CI | ========================
