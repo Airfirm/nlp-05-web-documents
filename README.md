@@ -5,6 +5,259 @@
 
 > Structured EVTL pipeline for reliable extraction and transformation of data from HTML web pages.
 
+
+# arXiv HTML EVTL Pipeline Project
+
+## Overview
+
+This project builds an **EVTL pipeline** to extract, validate, transform, and load data from an arXiv paper webpage.
+
+EVTL stands for:
+
+- **Extract** – fetch the raw HTML from the source URL
+- **Validate** – inspect and validate the HTML structure
+- **Transform** – extract and clean fields from the page and create derived analytical features
+- **Load** – save the processed output to a final file such as CSV
+
+The goal of this project is to turn a semi-structured HTML page into a structured, analysis-ready dataset.
+
+---
+
+## Source URL
+
+The source data for this project comes from the following arXiv page:
+
+`https://arxiv.org/abs/2604.01967`
+
+This page contains metadata for the paper:
+
+**Optimizing Relational Queries over Array-Valued Data in Columnar Systems**
+
+The raw HTML includes fields such as:
+
+- title
+- authors
+- abstract
+- subject/category
+- submission date
+- canonical arXiv ID
+- PDF link
+
+---
+
+## Project Goal
+
+The purpose of this project is to practice working with HTML as a data source in an NLP-style pipeline. Unlike JSON APIs, HTML must be parsed and inspected carefully because the content is embedded inside tags, classes, and attributes.
+
+This project demonstrates how to:
+
+- fetch raw HTML from a webpage
+- validate expected HTML elements
+- extract bibliographic and descriptive metadata
+- clean fields that contain descriptor prefixes
+- create derived analytical columns
+- produce a structured DataFrame for downstream analysis
+
+---
+
+## Pipeline Structure
+
+This project is organized into pipeline stages:
+
+- `config_femi.py` – stores paths, source URL, and request headers
+- `stage01_extract_femi.py` – fetches the raw HTML from the webpage
+- `stage02_validate_femi.py` – validates that the required HTML structure exists
+- `stage03_transform_femi.py` – extracts, cleans, and transforms fields into a DataFrame
+- `stage04_load_femi.py` – saves the final output
+- `pipeline_femi_html.py` – orchestrates the full EVTL pipeline
+
+---
+
+## How to Run
+
+Run the full pipeline from the project root:
+
+```bash
+uv run python -m nlp.pipeline_femi_html
+
+
+
+This executes the stages in order:
+
+Extract
+Validate
+Transform
+Load
+Data Source Type
+
+This project uses HTML as the source data type.
+
+That means the workflow differs from an API JSON pipeline because:
+
+HTML must be parsed using BeautifulSoup
+fields must be located using HTML tags, classes, and attributes
+data often requires additional cleaning after extraction
+webpage structure can change, making validation especially important
+Tools Used
+Python
+requests
+BeautifulSoup
+pandas
+logging
+EVTL pipeline design
+Fields Extracted
+
+The Transform stage extracts the following core fields from the arXiv page:
+
+arxiv_id
+title
+authors
+subjects
+submitted
+abstract
+
+Additional extracted metadata includes:
+
+pdf_url
+primary_subject
+primary_category_code
+Derived Analytical Fields
+
+The Transform stage also creates derived fields to make the output more useful for analysis:
+
+author_count – number of authors listed on the paper
+first_author – first author extracted from the author list
+abstract_word_count – total number of words in the abstract
+abstract_sentence_count – estimated number of sentences in the abstract
+title_char_count – number of characters in the title
+
+These fields help support exploratory analysis and make the dataset more informative than a basic scrape.
+
+Cleaning and Special Handling
+
+Several fields required extra cleaning after extraction:
+
+Title
+
+The title is stored in an <h1> tag that includes the visible prefix Title: inside the same tag as the actual paper title.
+This prefix had to be removed.
+
+Abstract
+
+The abstract is stored in a <blockquote> tag that includes the prefix Abstract:.
+This descriptor had to be removed to produce clean text.
+
+Submitted Date
+
+The submission date appears in a format like:
+
+[Submitted on 2 Apr 2026]
+
+This required cleaning to remove brackets and the phrase Submitted on.
+
+Authors
+
+The authors container includes author links and punctuation.
+To avoid formatting issues, the author names were extracted from the individual <a> tags and then joined into a clean comma-separated string.
+
+What Was Modified
+
+The Transform stage was customized beyond the base example to:
+
+add a new derived column for sentence count in the abstract
+add extraction of the PDF URL
+add extraction of the primary arXiv category code
+add extraction of the first author
+improve logging detail for each pipeline step
+clean descriptor-prefixed fields more carefully
+
+These updates made the pipeline more analytical, more readable, and easier to debug.
+
+Why These Modifications Were Made
+
+These modifications were made to create a richer structured output from the HTML page and to make the transformed data more useful for analysis.
+
+Instead of only capturing the basic bibliographic fields, the updated pipeline now produces a more complete paper record that can support:
+
+metadata analysis
+text-based feature generation
+category grouping
+paper summary comparisons
+future NLP workflows
+Example Analytical Questions Supported
+
+This transformed dataset can help answer questions such as:
+
+What is the primary arXiv category for this paper?
+How many authors contributed to the paper?
+Who is the first author?
+How long is the abstract in words or sentences?
+What PDF link is associated with the paper?
+How much cleaning is needed when scraping HTML metadata fields?
+Results Summary
+
+The final output is a clean one-row pandas DataFrame containing:
+
+bibliographic metadata
+cleaned abstract and title text
+subject/category information
+a direct PDF link
+derived analytical features
+
+This makes the webpage content analysis-ready and suitable for saving as a CSV or using in later NLP workflows.
+
+Challenges Encountered
+
+A few challenges came up during development:
+
+some extracted fields included descriptor text like Title: and Abstract:
+the submission date included extra formatting that needed cleaning
+author extraction required handling multiple <a> tags instead of using the full container text
+extraction logic had to be based on the actual HTML structure, not assumptions
+
+These challenges reinforced the importance of inspecting the page source before writing extraction code.
+
+How the Challenges Were Addressed
+
+The challenges were addressed by:
+
+carefully reviewing the HTML source
+locating the correct tags and classes
+using targeted cleaning with string replacement and strip()
+extracting author names from <a> tags directly
+adding more detailed logging messages to verify each step
+Why Pandas Was Used
+
+This project uses pandas instead of Polars because the transformed output is a small, structured record from a single webpage. Pandas was a good fit because it is simple, readable, and convenient for building a one-row DataFrame from extracted fields.
+
+What Is Interesting About This Project
+
+What is interesting about this project is that it turns a single HTML paper page into a structured analytical record. It shows that even though HTML is designed for display in a browser, it can still be transformed into a clean dataset with the right parsing and cleaning logic.
+
+It also demonstrates that transformation is not just about copying values — it is also about improving the usefulness of the data by creating analytical features.
+
+Lessons Learned
+
+This project reinforced several important ideas:
+
+HTML must be inspected before extraction logic is written
+validation is important because webpage structure can change
+scraped fields often need cleaning before they are usable
+small derived columns can add major analytical value
+EVTL is a strong design pattern for reproducible data workflows
+Suggestions for Future Improvements
+
+Possible next steps for this project include:
+
+scraping multiple arXiv paper pages instead of one
+extracting DOI and submission history details
+adding text preprocessing for the abstract
+performing word frequency analysis on multiple abstracts
+grouping papers by category code
+exporting multiple paper records into one larger dataset
+
+
+
 Web Mining and Applied NLP require reliable acquisition and
 processing of structured and semi-structured text data.
 This project implements a reproducible pipeline for
